@@ -6,5 +6,5 @@
 **/CVS/*
 .cvsignore
 */.cvsignore
-
+*.cvs
 # End of https://www.toptal.com/developers/gitignore/api/cvs
