@@ -1,10 +1,9 @@
-# Created by https://www.toptal.com/developers/gitignore/api/cvs
-# Edit at https://www.toptal.com/developers/gitignore?templates=cvs
-
 ### CVS ###
 /CVS/*
 **/CVS/*
 .cvsignore
 */.cvsignore
 *.cvs
-# End of https://www.toptal.com/developers/gitignore/api/cvs
+
+### dataset ###
+dataset/
