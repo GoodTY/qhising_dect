@@ -3,8 +3,8 @@
 import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
-from langdetect import detect, DetectorFactory
 import html2text
+import re
 
 # CSV 파일 경로
 input_file = 'dataset/train_html.csv'
@@ -68,15 +68,31 @@ def extract_text(html_content):
         print(f"Error extracting text: {str(e)}")
         return ""
 
-# 텍스트가 영어인지 확인하는 함수 정의
-def is_english(text):
+
+# 영어 텍스트인지 확인하는 함수 (알파벳 비율을 사용)
+def is_english(text, threshold=0.9):
     try:
         if not text:
             return False
-        return detect(text) == 'en'
-    except:
+
+        # 텍스트에서 영어 알파벳의 개수를 셈
+        english_letters = re.findall(r'[a-zA-Z]', text)
+        total_characters = len(text)
+
+        # 빈 문자열일 경우 False 반환
+        if total_characters == 0:
+            return False
+
+        # 영어 알파벳 비율 계산
+        english_ratio = len(english_letters) / total_characters
+
+        # 비율이 threshold 이상이면 영어로 판단
+        return english_ratio >= threshold
+    except Exception as e:
+        print(f"Error processing content: {str(e)}")
         return False
-    
+
+
 # "Data" 열에서 URL과 텍스트를 추출하여 새로운 열에 저장
 df['extracted_text'] = df['Data'].apply(extract_text)
 
