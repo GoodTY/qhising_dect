@@ -106,6 +106,9 @@ if torch.cuda.device_count() > 1:
     print(f"Using {torch.cuda.device_count()} GPUs")
     model = nn.DataParallel(model)
 
+# 손실 함수 정의
+criterion = torch.nn.CrossEntropyLoss()
+
 # 옵티마이저 정의
 optimizer = Adam(model.parameters(), lr=1e-5)
 
@@ -134,14 +137,15 @@ for epoch in range(epochs):
 
         optimizer.zero_grad()
 
-        outputs = model(input_ids_batch, attention_mask=attention_mask_batch, token_type_ids=token_type_ids_batch, labels=labels_batch)
-        loss = outputs.loss.mean()  # 평균 손실 계산
+        outputs = model(input_ids_batch, attention_mask=attention_mask_batch, token_type_ids=token_type_ids_batch)
+        logits = outputs.logits
+
+        loss = criterion(logits, labels_batch)
         total_loss += loss.item()
 
         loss.backward()
         optimizer.step()
 
-        logits = outputs.logits
         predictions = torch.argmax(logits, dim=-1)
         epoch_preds.extend(predictions.cpu().numpy())
         epoch_labels.extend(labels_batch.cpu().numpy())
@@ -175,11 +179,12 @@ for epoch in range(epochs):
             val_token_type_ids = val_batch['token_type_ids'].to(device)
             val_labels = val_batch['labels'].to(device)
 
-            val_outputs = model(val_input_ids, attention_mask=val_attention_mask, token_type_ids=val_token_type_ids, labels=val_labels)
-            val_loss = val_outputs.loss.mean()  # 평균 손실 계산
+            val_outputs = model(val_input_ids, attention_mask=val_attention_mask, token_type_ids=val_token_type_ids)
+            val_logits = val_outputs.logits
+
+            val_loss = criterion(val_logits, val_labels)
             total_val_loss += val_loss.item()
 
-            val_logits = val_outputs.logits
             val_predictions = torch.argmax(val_logits, dim=-1)
             val_preds.extend(val_predictions.cpu().numpy())
             val_labels_list.extend(val_labels.cpu().numpy())
@@ -209,11 +214,12 @@ for epoch in range(epochs):
             test_token_type_ids = test_batch['token_type_ids'].to(device)
             test_labels = test_batch['labels'].to(device)
 
-            test_outputs = model(test_input_ids, attention_mask=test_attention_mask, token_type_ids=test_token_type_ids, labels=test_labels)
-            test_loss = test_outputs.loss.mean()  # 평균 손실 계산
+            test_outputs = model(test_input_ids, attention_mask=test_attention_mask, token_type_ids=test_token_type_ids)
+            test_logits = test_outputs.logits
+
+            test_loss = criterion(test_logits, test_labels)
             total_test_loss += test_loss.item()
 
-            test_logits = test_outputs.logits
             test_predictions = torch.argmax(test_logits, dim=-1)
             test_preds.extend(test_predictions.cpu().numpy())
             test_labels_list.extend(test_labels.cpu().numpy())
@@ -328,6 +334,9 @@ if torch.cuda.device_count() > 1:
     print(f"Using {torch.cuda.device_count()} GPUs")
     model = nn.DataParallel(model)
 
+# 손실 함수 정의
+criterion = torch.nn.CrossEntropyLoss()
+
 # 옵티마이저 정의
 optimizer = Adam(model.parameters(), lr=1e-5)
 
@@ -351,8 +360,10 @@ for epoch in range(epochs):
         optimizer.zero_grad()
 
         # 순전파
-        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-        loss = outputs.loss.mean()  # 평균 손실 계산
+        outputs = model(input_ids, attention_mask=attention_mask)
+        logits = outputs.logits
+
+        loss = criterion(logits, labels)
         total_loss += loss.item()
 
         # 역전파 및 최적화
@@ -375,11 +386,12 @@ for epoch in range(epochs):
             val_attention_mask = val_batch['attention_mask'].to(device)
             val_labels = val_batch['labels'].to(device)
 
-            val_outputs = model(val_input_ids, attention_mask=val_attention_mask, labels=val_labels)
-            val_loss = val_outputs.loss.mean()  # 평균 손실 계산
+            val_outputs = model(val_input_ids, attention_mask=val_attention_mask)
+            val_logits = val_outputs.logits
+
+            val_loss = criterion(val_logits, val_labels)
             total_val_loss += val_loss.item()
 
-            val_logits = val_outputs.logits
             val_predictions = torch.argmax(val_logits, dim=-1)
             val_preds.extend(val_predictions.cpu().numpy())
             val_labels_list.extend(val_labels.cpu().numpy())
@@ -411,6 +423,8 @@ for epoch in range(epochs):
 model.eval()
 test_preds = []
 test_labels_list = []
+total_test_loss = 0
+
 with torch.no_grad():
     for batch in tqdm(test_loader, desc="Testing", leave=False):
         test_input_ids = batch['input_ids'].to(device)
@@ -419,14 +433,20 @@ with torch.no_grad():
 
         outputs = model(test_input_ids, attention_mask=test_attention_mask)
         logits = outputs.logits
+
+        test_loss = criterion(logits, test_labels)
+        total_test_loss += test_loss.item()
+
         predictions = torch.argmax(logits, dim=-1)
         test_preds.extend(predictions.cpu().numpy())
         test_labels_list.extend(test_labels.cpu().numpy())
 
+avg_test_loss = total_test_loss / len(test_loader)
 test_accuracy = accuracy_score(test_labels_list, test_preds)
 test_precision = precision_score(test_labels_list, test_preds, average='binary')
 test_recall = recall_score(test_labels_list, test_preds, average='binary')
 test_f1 = f1_score(test_labels_list, test_preds, average='binary')
 print(f"\nTest Metrics:")
+print(f"Test Loss: {avg_test_loss:.4f}")
 print(f"Test Accuracy: {test_accuracy:.4f}")
 print(f"Test Precision: {test_precision:.4f}, Test Recall: {test_recall:.4f}, Test F1-Score: {test_f1:.4f}")
