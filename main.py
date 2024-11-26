@@ -5,13 +5,11 @@ from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import torch.nn as nn
-from transformers import BertForSequenceClassification
+from transformers import BertForSequenceClassification, BertTokenizer
 from torch.optim import Adam
 from tqdm import tqdm
 import gc
 import os
-from langdetect import detect, DetectorFactory
-from transformers import BertTokenizer
 
 torch.cuda.is_available()
 
