@@ -106,8 +106,7 @@ if torch.cuda.device_count() > 1:
     print(f"Using {torch.cuda.device_count()} GPUs")
     model = nn.DataParallel(model)
 
-# 손실 함수와 옵티마이저 정의
-criterion = torch.nn.CrossEntropyLoss()
+# 옵티마이저 정의
 optimizer = Adam(model.parameters(), lr=1e-5)
 
 # 모델 저장을 위한 디렉토리 설정
@@ -115,7 +114,7 @@ save_directory = 'phishing_model'
 os.makedirs(save_directory, exist_ok=True)
 
 # 학습 루프
-epochs = 100
+epochs = 1
 steps_per_epoch = len(train_loader)
 
 for epoch in range(epochs):
@@ -136,7 +135,7 @@ for epoch in range(epochs):
         optimizer.zero_grad()
 
         outputs = model(input_ids_batch, attention_mask=attention_mask_batch, token_type_ids=token_type_ids_batch, labels=labels_batch)
-        loss = outputs.loss
+        loss = outputs.loss.mean()  # 평균 손실 계산
         total_loss += loss.item()
 
         loss.backward()
@@ -177,7 +176,7 @@ for epoch in range(epochs):
             val_labels = val_batch['labels'].to(device)
 
             val_outputs = model(val_input_ids, attention_mask=val_attention_mask, token_type_ids=val_token_type_ids, labels=val_labels)
-            val_loss = val_outputs.loss
+            val_loss = val_outputs.loss.mean()  # 평균 손실 계산
             total_val_loss += val_loss.item()
 
             val_logits = val_outputs.logits
@@ -211,7 +210,7 @@ for epoch in range(epochs):
             test_labels = test_batch['labels'].to(device)
 
             test_outputs = model(test_input_ids, attention_mask=test_attention_mask, token_type_ids=test_token_type_ids, labels=test_labels)
-            test_loss = test_outputs.loss
+            test_loss = test_outputs.loss.mean()  # 평균 손실 계산
             total_test_loss += test_loss.item()
 
             test_logits = test_outputs.logits
@@ -329,8 +328,7 @@ if torch.cuda.device_count() > 1:
     print(f"Using {torch.cuda.device_count()} GPUs")
     model = nn.DataParallel(model)
 
-# 손실 함수와 옵티마이저 정의
-criterion = torch.nn.CrossEntropyLoss()
+# 옵티마이저 정의
 optimizer = Adam(model.parameters(), lr=1e-5)
 
 # 모델 저장을 위한 디렉토리 설정
@@ -354,7 +352,7 @@ for epoch in range(epochs):
 
         # 순전파
         outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-        loss = outputs.loss
+        loss = outputs.loss.mean()  # 평균 손실 계산
         total_loss += loss.item()
 
         # 역전파 및 최적화
@@ -378,7 +376,7 @@ for epoch in range(epochs):
             val_labels = val_batch['labels'].to(device)
 
             val_outputs = model(val_input_ids, attention_mask=val_attention_mask, labels=val_labels)
-            val_loss = val_outputs.loss
+            val_loss = val_outputs.loss.mean()  # 평균 손실 계산
             total_val_loss += val_loss.item()
 
             val_logits = val_outputs.logits
