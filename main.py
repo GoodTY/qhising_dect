@@ -69,14 +69,13 @@ train_ids, val_ids, train_mask, val_mask, train_token_type, val_token_type, trai
 del input_ids, attention_mask, token_type_ids, labels
 gc.collect()
 
-# Dataset 클래스 정의 및 GPU에 직접 전달할 준비
+# Dataset 클래스 정의
 class PhishingDataset(Dataset):
     def __init__(self, input_ids, attention_mask, token_type_ids, labels):
-        # 모든 텐서를 GPU로 직접 전달
-        self.input_ids = torch.tensor(input_ids, dtype=torch.long).to(device)
-        self.attention_mask = torch.tensor(attention_mask, dtype=torch.long).to(device)
-        self.token_type_ids = torch.tensor(token_type_ids, dtype=torch.long).to(device)
-        self.labels = torch.tensor(labels, dtype=torch.long).to(device)
+        self.input_ids = torch.tensor(input_ids, dtype=torch.long)
+        self.attention_mask = torch.tensor(attention_mask, dtype=torch.long)
+        self.token_type_ids = torch.tensor(token_type_ids, dtype=torch.long)
+        self.labels = torch.tensor(labels, dtype=torch.long)
 
     def __len__(self):
         return len(self.labels)
@@ -102,6 +101,11 @@ test_loader = DataLoader(test_dataset, batch_size=8)
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
 model.to(device)
 
+# 여러 GPU 사용 설정
+if torch.cuda.device_count() > 1:
+    print(f"Using {torch.cuda.device_count()} GPUs")
+    model = nn.DataParallel(model)
+
 # 손실 함수와 옵티마이저 정의
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = Adam(model.parameters(), lr=1e-5)
@@ -110,8 +114,8 @@ optimizer = Adam(model.parameters(), lr=1e-5)
 save_directory = 'phishing_model'
 os.makedirs(save_directory, exist_ok=True)
 
-# 학습 루프 100->10
-epochs = 1
+# 학습 루프
+epochs = 100
 steps_per_epoch = len(train_loader)
 
 for epoch in range(epochs):
@@ -124,10 +128,10 @@ for epoch in range(epochs):
 
     # 학습 단계
     for batch_idx, batch in enumerate(tqdm(train_loader, desc="Training", leave=False)):
-        input_ids_batch = batch['input_ids']
-        attention_mask_batch = batch['attention_mask']
-        token_type_ids_batch = batch['token_type_ids']
-        labels_batch = batch['labels']
+        input_ids_batch = batch['input_ids'].to(device)
+        attention_mask_batch = batch['attention_mask'].to(device)
+        token_type_ids_batch = batch['token_type_ids'].to(device)
+        labels_batch = batch['labels'].to(device)
 
         optimizer.zero_grad()
 
@@ -231,14 +235,18 @@ for epoch in range(epochs):
     # 모델 저장
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     model_save_path = os.path.join(save_directory, f'bert_phishing_model_url_epoch_{epoch + 1}_{timestamp}')
-    model.save_pretrained(model_save_path)
+    # DataParallel 사용 시 모델 저장
+    if isinstance(model, nn.DataParallel):
+        model.module.save_pretrained(model_save_path)
+    else:
+        model.save_pretrained(model_save_path)
     print(f"모델이 {model_save_path}에 저장되었습니다.")
 
 del model
 torch.cuda.empty_cache()
 
 ##################################################################################################
-#HTML CONTENTS 모델 학습 시작
+# HTML CONTENTS 모델 학습 시작
 
 # 위에서 메모리 초기화 했으므로 다시 불러오기
 df = pd.read_csv('dataset/ready_html_processed.csv')
@@ -316,15 +324,20 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
 model.to(device)
 
+# 여러 GPU 사용 설정
+if torch.cuda.device_count() > 1:
+    print(f"Using {torch.cuda.device_count()} GPUs")
+    model = nn.DataParallel(model)
+
 # 손실 함수와 옵티마이저 정의
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = Adam(model.parameters(), lr=1e-5)
 
 # 모델 저장을 위한 디렉토리 설정
-save_directory = '/content/drive/MyDrive/html_phishing_model'
+save_directory = 'html_phishing_model'
 os.makedirs(save_directory, exist_ok=True)
 
-# 학습 루프 100->10
+# 학습 루프
 epochs = 10
 for epoch in range(epochs):
     model.train()
@@ -389,7 +402,11 @@ for epoch in range(epochs):
     # 모델 저장
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     model_save_path = os.path.join(save_directory, f'bert_html_model_html_content_epoch_{epoch + 1}_{timestamp}')
-    model.save_pretrained(model_save_path)
+    # DataParallel 사용 시 모델 저장
+    if isinstance(model, nn.DataParallel):
+        model.module.save_pretrained(model_save_path)
+    else:
+        model.save_pretrained(model_save_path)
     print(f"모델이 {model_save_path}에 저장되었습니다.")
 
 # 테스트 단계
