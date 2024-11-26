@@ -1,6 +1,7 @@
 beautifulsoup4==4.12.3
 bs4==0.0.2
 certifi==2024.8.30
+chardet==5.2.0
 charset-normalizer==3.4.0
 filelock==3.16.1
 fsspec==2024.10.0
