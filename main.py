@@ -345,7 +345,7 @@ save_directory = 'html_phishing_model'
 os.makedirs(save_directory, exist_ok=True)
 
 # 학습 루프
-epochs = 10
+epochs = 1
 for epoch in range(epochs):
     model.train()
     total_loss = 0
