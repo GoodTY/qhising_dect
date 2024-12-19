@@ -238,8 +238,8 @@ for epoch in range(epochs):
     print(f"Test F1-Score: {test_f1:.4f}")
 
     # 모델 저장
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    model_save_path = os.path.join(save_directory, f'bert_phishing_model_url_epoch_{epoch + 1}_{timestamp}')
+    model_save_path = os.path.join(save_directory, 'bert_phishing_model_url')
+
     # DataParallel 사용 시 모델 저장
     if isinstance(model, nn.DataParallel):
         model.module.save_pretrained(model_save_path)
@@ -410,8 +410,8 @@ for epoch in range(epochs):
     print(f"Validation F1-Score: {val_f1:.4f}")
 
     # 모델 저장
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    model_save_path = os.path.join(save_directory, f'bert_html_model_html_content_epoch_{epoch + 1}_{timestamp}')
+    model_save_path = os.path.join(save_directory, 'bert_html_model_html_content')
+
     # DataParallel 사용 시 모델 저장
     if isinstance(model, nn.DataParallel):
         model.module.save_pretrained(model_save_path)
