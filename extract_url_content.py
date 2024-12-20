@@ -1,10 +1,10 @@
-# train_html.csv에서 Data -> urls, contents 추출
-
+# 필요한 라이브러리 임포트
 import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 import html2text
-import re
+from langdetect import detect
+import gc
 
 # CSV 파일 경로
 input_file = 'dataset/train_html.csv'
@@ -25,7 +25,7 @@ df = pd.read_csv('dataset/ready_html.csv')
 # 'Category' 열을 'label'로 변경
 df.rename(columns={'Category': 'label'}, inplace=True)
 
-# URL 추출 함수 정의 (타입 체크 추가)
+# URL 추출 함수 정의
 def extract_urls(html_content):
     try:
         if pd.isna(html_content):
@@ -43,7 +43,7 @@ df['Data'] = df['Data'].fillna('')
 # "Data" 열에서 URL을 추출하여 새로운 열에 저장
 df['extracted_urls'] = df['Data'].apply(extract_urls)
 
-# HTML Contents 추출 함수 정의 URL,IMAGE 등 제외
+# HTML Contents 추출 함수 정의 URL, IMAGE 등 제외
 def extract_text(html_content):
     try:
         if pd.isna(html_content):
@@ -68,33 +68,30 @@ def extract_text(html_content):
         print(f"Error extracting text: {str(e)}")
         return ""
 
-
-# 영어 텍스트인지 확인하는 함수 (알파벳 비율을 사용)
-def is_english(text, threshold=0.9):
+# langdetect를 사용하여 영어 텍스트 필터링 함수 정의
+def is_english_langdetect(text):
     try:
         if not text:
             return False
-
-        # 텍스트에서 영어 알파벳의 개수를 셈
-        english_letters = re.findall(r'[a-zA-Z]', text)
-        total_characters = len(text)
-
-        # 빈 문자열일 경우 False 반환
-        if total_characters == 0:
-            return False
-
-        # 영어 알파벳 비율 계산
-        english_ratio = len(english_letters) / total_characters
-
-        # 비율이 threshold 이상이면 영어로 판단
-        return english_ratio >= threshold
+        # langdetect로 언어 감지
+        detected_language = detect(text)
+        return detected_language == 'en'
     except Exception as e:
-        print(f"Error processing content: {str(e)}")
+        print(f"Error detecting language: {str(e)}")
         return False
 
-
-# "Data" 열에서 URL과 텍스트를 추출하여 새로운 열에 저장
+# "Data" 열에서 URL과 텍스트를 추출
 df['extracted_text'] = df['Data'].apply(extract_text)
 
+# 영어 텍스트 필터링
+df = df[df['extracted_text'].apply(is_english_langdetect)]
+
 # CSV 형식으로 저장
-df.to_csv('dataset/ready_html_processed.csv', index=False)
+output_processed_file = 'dataset/ready_html_processed.csv'
+df.to_csv(output_processed_file, index=False)
+
+# 메모리 정리
+del df
+gc.collect()
+
+print(f"Processed data saved to {output_processed_file}")
